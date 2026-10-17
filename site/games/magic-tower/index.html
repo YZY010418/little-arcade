@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#11191a" />
+  <meta name="description" content="踏入五十层魔塔。用每一把钥匙、每一点生命与每一次选择，走向塔顶。经典策略角色扮演游戏网页版。" />
+  <title>魔塔 · 五十层的远征</title>
+  <link rel="stylesheet" href="./style.css" /><link rel="icon" href="./asset/PLAYER1.png" />
+</head>
+<body>
+  <!-- shell.js interface: #game-frame; stat-{hp,atk,def,money,yellowKey,blueKey,redKey};
+       floor-title, floor-number, floor-progress, chapter-title, chapter-description,
+       status-message, save-status, adventure-log, app-toast, modal-root.
+       Actions are exposed through [data-action]; movement through [data-direction]. -->
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="魔塔首页">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 40" fill="none"><path d="M4 36h24M8 35V15h16v20M11 15V8h10v7M14 8V3h4v5M5 15h22M12 35v-9h8v9M14 18h4v4h-4" stroke="currentColor" stroke-width="1.5"/><path d="M8 6h3M21 6h3M5 12h3M24 12h3" stroke="currentColor"/></svg></span>
+        <span class="brand-text"><strong>魔塔<span class="brand-dot">.</span></strong><span>TOWER OF THE SORCERER</span></span>
+      </a>
+      <nav class="header-nav" aria-label="游戏导航">
+        <span class="edition"><span class="tiny-star">✧</span> 50 层经典冒险</span>
+        <button class="plain-button" data-action="help"><span>玩法指南</span><span class="nav-arrow">↗</span></button>
+        <button class="sound-button" data-action="sound" aria-label="切换声音" title="切换声音"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+      </nav>
+    </header>
+
+    <main>
+      <div class="page-intro">
+        <div><div class="eyebrow"><span class="eyebrow-line"></span> THE ASCENT BEGINS</div><h1>五十层，一场勇者的远征<span>。</span></h1><p>力量之外，选择决定你的命运。</p></div>
+        <div class="save-state"><span class="status-dot"></span><span id="save-status">进度保存在此设备</span></div>
+      </div>
+
+      <section class="game-layout" aria-label="魔塔游戏">
+        <aside class="hero-panel panel" aria-label="勇者状态">
+          <div class="panel-kicker"><span>勇者档案</span><span class="roman">Ⅰ</span></div>
+          <div class="hero-portrait"><div class="portrait-rune rune-one"></div><div class="portrait-rune rune-two"></div><img src="./asset/PLAYER1.png" alt="像素勇者" width="64" height="64"/><span class="portrait-corner top-left"></span><span class="portrait-corner bottom-right"></span></div>
+          <div class="hero-name">无名的勇者 <span class="level-badge">HERO</span></div><p class="hero-subtitle">向塔顶，向命运。</p>
+          <div class="stats-list">
+            <div class="stat-row health"><span class="stat-label"><span class="stat-icon">♡</span>生命</span><strong id="stat-hp">1000</strong></div>
+            <div class="stat-row"><span class="stat-label"><span class="stat-icon">⚔</span>攻击</span><strong id="stat-atk">100</strong></div>
+            <div class="stat-row"><span class="stat-label"><svg class="stat-icon" viewBox="0 0 20 20" fill="none"><path d="m10 2 6 2v5c0 4-6 8-6 8S4 13 4 9V4l6-2Z" stroke="currentColor" stroke-width="1.4"/></svg>防御</span><strong id="stat-def">100</strong></div>
+            <div class="stat-row gold"><span class="stat-label"><span class="stat-icon coin-icon">◉</span>金币</span><strong id="stat-money">0</strong></div>
+          </div>
+          <div class="keys-section"><div class="small-label">随身钥匙 <span>KEYS</span></div><div class="key-grid">
+            <div class="key-item key-yellow" title="黄钥匙"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="m11 11 9 9m-4-4 3-3m-6 0 3-3" stroke="currentColor" stroke-width="2"/></svg><strong id="stat-yellowKey">0</strong></div>
+            <div class="key-item key-blue" title="蓝钥匙"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="m11 11 9 9m-4-4 3-3m-6 0 3-3" stroke="currentColor" stroke-width="2"/></svg><strong id="stat-blueKey">0</strong></div>
+            <div class="key-item key-red" title="红钥匙"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="m11 11 9 9m-4-4 3-3m-6 0 3-3" stroke="currentColor" stroke-width="2"/></svg><strong id="stat-redKey">0</strong></div>
+          </div></div>
+          <div class="hero-note"><span>✦</span><p>每一份力量，都来之不易。<br/>战斗之前，先看看怪物手册。</p></div>
+        </aside>
+
+        <div class="play-column">
+          <div class="map-heading"><div><span class="floor-tag">FLOOR <span id="floor-number">01</span></span><h2 id="floor-title">魔塔 · 第 1 层</h2></div><span class="map-live"><span></span>探索中</span></div>
+          <div class="game-frame-wrap"><span class="frame-detail detail-tl"></span><span class="frame-detail detail-tr"></span><span class="frame-detail detail-bl"></span><span class="frame-detail detail-br"></span><iframe id="game-frame" src="./game/index.html" title="五十层魔塔游戏地图" allow="autoplay" loading="eager"></iframe></div>
+          <div class="map-caption"><span><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd><span class="keyboard-alternative"> / WASD</span> 移动</span><span>也可以点击地图前进 <span class="caption-star">✧</span></span></div>
+          <div class="mobile-pad" aria-label="移动方向键"><button data-direction="up" aria-label="向上">↑</button><button data-direction="left" aria-label="向左">←</button><button data-direction="down" aria-label="向下">↓</button><button data-direction="right" aria-label="向右">→</button></div>
+        </div>
+
+        <aside class="journey-panel" aria-label="远征记录">
+          <div class="chapter-card panel"><div class="panel-kicker"><span>远征之路</span><span class="tiny-star">✧</span></div><div class="chapter-emblem" aria-hidden="true"><svg viewBox="0 0 90 104" fill="none"><path d="M19 90h52M25 89V39h40v50M31 39V24h28v15M38 24V10h14v14M42 10V4h6v6M19 39h52M32 47h5v8h-5m16-8h5v8h-5M32 62h5v8h-5m16-8h5v8h-5M40 89V77h10v12" stroke="currentColor" stroke-width="1.4"/><path d="M17 16h7m-3.5-3.5v7M70 31h6m-3-3v6M13 65h4m-2-2v4" stroke="currentColor"/><circle cx="72" cy="12" r="1" fill="currentColor"/><path d="M16 95h58M22 100h46" stroke="currentColor" stroke-opacity=".35"/></svg></div><div class="chapter-index">CHAPTER <span id="chapter-number">01</span> / 05</div><h2 id="chapter-title">命运的入口</h2><p id="chapter-description">神秘的高塔，囚禁的公主。<br/>你的故事，从踏入这里开始。</p><div class="progress-head"><span>攀登进度</span><strong><span id="floor-current">1</span> <span>/ 50</span></strong></div><div class="progress-track"><span id="floor-progress" style="width: 2%"></span></div></div>
+          <div class="journal"><div class="panel-kicker"><span>冒险手记</span><span class="journal-rule"></span></div><div id="adventure-log"><div class="log-entry"><span class="log-dot"></span><p id="status-message">高塔的大门已经开启。<br/>准备好迎接你的命运了吗？</p></div></div><button class="start-button" data-action="start"><span>开始远征</span><span>↗</span></button><button class="continue-button" data-action="continue">继续上次的冒险 <span>→</span></button></div>
+        </aside>
+      </section>
+
+      <section class="toolbar" aria-label="游戏操作">
+        <div class="toolbar-group primary-tools">
+          <button data-action="book"><span class="tool-symbol">▤</span><span>怪物手册</span><kbd>X</kbd></button>
+          <button data-action="fly"><span class="tool-symbol">⌁</span><span>楼层传送</span><kbd>G</kbd></button>
+          <button data-action="toolbox"><span class="tool-symbol">▣</span><span>道具背包</span><kbd>T</kbd></button>
+        </div><span class="toolbar-divider"></span>
+        <div class="toolbar-group secondary-tools"><button data-action="save"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 3h11l3 3v11H3V3Z" stroke="currentColor" stroke-width="1.4"/><path d="M6 3v5h7V3M6 17v-6h8v6" stroke="currentColor" stroke-width="1.4"/></svg><span>保存</span><kbd>P</kbd></button><button data-action="load"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 6h5l2 2h7v9H3V6Z" stroke="currentColor" stroke-width="1.4"/><path d="M4 6V3h12v5" stroke="currentColor" stroke-width="1.4"/></svg><span>读取</span><kbd>L</kbd></button><button data-action="settings"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14M7 3v4M13 8v4M8 13v4" stroke="currentColor" stroke-width="1.4"/></svg><span>设置</span><kbd>Esc</kbd></button></div>
+      </section>
+    </main>
+
+    <footer class="site-footer"><p>献给每一位曾经踏入魔塔的勇者。</p><div><span class="footer-rule"></span><span>策略 · 勇气 · 选择</span><span class="footer-diamond">◇</span></div></footer>
+  </div>
+  <div id="app-toast" role="status" aria-live="polite"></div>
+  <div id="modal-root"></div>
+  <script src="./shell.js"></script>
+</body>
+</html>

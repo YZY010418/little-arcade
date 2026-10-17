@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f5f2e9">
+  <title>开始游戏 · 玩一会儿</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./player.css">
+  <script src="./player.js" defer></script>
+</head>
+<body>
+  <header class="player-bar">
+    <a class="back-link" href="./" aria-label="返回游戏总览菜单"><span aria-hidden="true">←</span> 返回合集</a>
+    <div class="game-heading"><span class="brand-mark" aria-hidden="true">✳</span><h1 id="game-title">玩一会儿</h1><span class="edition" id="game-edition">LITTLE ARCADE</span></div>
+    <div class="player-actions"><button id="help" type="button" aria-label="查看游戏与存档说明" aria-haspopup="dialog" aria-controls="help-dialog">玩法说明 <span aria-hidden="true">?</span></button><button id="fullscreen" type="button" hidden>全屏 <span aria-hidden="true">⛶</span></button></div>
+  </header>
+  <main id="player">
+    <div class="loading" id="loading" role="status"><span class="loading-mark" aria-hidden="true">✳</span><p>正在打开一场小冒险…</p></div>
+    <div class="missing" id="missing" hidden><h2>这款游戏还没上架</h2><p>先从合集里的两场冒险开始吧。</p><a href="./">返回游戏总览 →</a></div>
+  </main>
+  <dialog id="help-dialog" aria-labelledby="help-title">
+    <form method="dialog"><button class="close" aria-label="关闭说明">×</button></form>
+    <p class="eyebrow">HOW TO PLAY</p><h2 id="help-title">把时间交给一场冒险。</h2>
+    <p id="game-controls"></p><p id="game-save"></p>
+    <p class="note">左上角「返回合集」随时回到游戏菜单。存档与成绩只保留在当前浏览器；清除网站数据会将它们删除。</p>
+    <form method="dialog"><button class="resume" value="resume">回到游戏 →</button></form>
+  </dialog>
+  <noscript>请开启 JavaScript 运行游戏。<a href="./">返回合集</a></noscript>
+</body>
+</html>

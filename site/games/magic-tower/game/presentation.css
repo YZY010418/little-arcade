@@ -1,0 +1,26 @@
+html,body{background:#111516!important;overscroll-behavior:none}
+#statusBar,#toolBar,#outerBackground,#outerUI,#floorMsgGroup,#musicBtn,#enlargeBtn,#startImageBackgroundDiv,#mainTips{display:none!important}
+#gameGroup,#gameDraw{border:0!important;background:#191c1c}
+#gameDraw{overflow:hidden}
+#startPanel{background:#171b1b!important}
+#startBackground,#startLogo,#startButtonGroup{visibility:hidden!important}
+#startTop{background:#171b1b;color:#d4bb83}
+#startTopHint{display:none}
+#startTopProgressBar{top:46%;height:3px;width:60%;margin:0 20%;background:#32372f}
+#startTopProgress{background:#d4bb83}
+#startTopLoadTips{top:51%;left:0;text-align:center;width:100%;font:12px system-ui;color:#bfb8a6}
+#expedition-intro{position:absolute;inset:0;z-index:295;display:flex;align-items:center;justify-content:center;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#eee8d9}
+.intro-map,.intro-shade{position:absolute;inset:0}
+.intro-map{background-size:100% 100%;image-rendering:pixelated;opacity:.29}
+.intro-shade{background:rgba(8,13,13,.58)}
+.intro-copy{position:relative;text-align:center;padding:25px 14px;width:100%}
+.intro-kicker{display:block;color:#c5ab77;font-size:.58em;letter-spacing:.32em;margin-bottom:1.6em}
+.intro-copy img{display:block;width:3.5em;height:3.5em;image-rendering:pixelated;margin:0 auto 1em}
+.intro-copy h1{font-family:Songti SC,STSong,serif;font-size:2em;font-weight:500;letter-spacing:.12em;margin:0 0 .6em}
+.intro-copy p{font-size:.68em;line-height:2;color:#c0bba9;margin:0 0 1.8em}
+.intro-copy button{display:block;margin:.7em auto;width:15em;padding:.85em 1em;border:1px solid #b8a06b;background:#cdb783;color:#1c241e;font:inherit;font-size:.75em;cursor:pointer}
+.intro-copy button span{float:right}
+.intro-copy #resume-expedition{background:rgba(20,25,23,.8);color:#d5c7aa;border-color:#665f49}
+.intro-copy button[hidden]{display:none!important}
+.intro-copy small{display:block;color:#989b8a;margin-top:1.7em;font-size:.52em}
+button:focus-visible{outline:2px solid #fff;outline-offset:4px}

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f4f1e9" />
+  <meta name="description" content="玩一会儿，一个轻巧的网页版小游戏合集。进入纸上幸存者的经典与无尽模式，或踏上五十层魔塔的冒险。无需安装，即点即玩。" />
+  <title>玩一会儿 · Little Arcade</title>
+  <link rel="stylesheet" href="./arcade.css" />
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="玩一会儿首页">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 36 36" fill="none"><rect x="3" y="3" width="30" height="30" rx="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 13v10m-5-5h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="25" cy="15" r="2" fill="currentColor"/><circle cx="22" cy="22" r="2" fill="currentColor"/></svg></span>
+        <span class="brand-copy"><strong>玩一会儿<span>。</span></strong><span>LITTLE ARCADE</span></span>
+      </a>
+      <div class="header-note"><span class="small-dot"></span><span>给日常留一点游戏时间</span></div>
+      <a class="header-link" href="#collection">挑一款游戏 <span aria-hidden="true">↘</span></a>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <div class="intro-main">
+          <div class="eyebrow"><span class="short-rule"></span> SMALL GAMES, GOOD TIMES</div>
+          <h1 id="page-title">给自己，<br class="mobile-break" />一局的时间<span>。</span></h1>
+          <p class="intro-description">在纸上坚持久一点，或向高塔再走一层。<br/>把复杂留在外面，把这一刻留给好玩。</p>
+        </div>
+        <div class="intro-aside" aria-hidden="true">
+          <span class="orbit-star">✳</span>
+          <div class="intro-aside-copy"><span>随时开始 · 随心探索</span><p>不必准备，<br/>好奇心就够了。</p></div>
+        </div>
+      </section>
+
+      <section class="collection" id="collection" aria-labelledby="collection-title">
+        <div class="section-heading"><div><h2 id="collection-title">今天，玩点什么？</h2><span class="collection-count">02 GAMES</span></div><span class="section-note">无需安装，打开就能玩 <span aria-hidden="true">↙</span></span></div>
+        <div class="game-grid">
+          <article class="game-card paper-card">
+            <a class="preview-link" href="./play.html?game=paper-survivor" aria-label="开始玩纸上幸存者">
+              <div class="preview-topline"><span class="game-number">NO. 01</span><span class="preview-badge"><span></span>经典 / 无尽</span></div>
+              <img class="game-preview" src="./previews/paper-survivor.svg" alt="纸上幸存者游戏预览：在纸张风格的战场上躲避敌人、收集成长" width="800" height="500" fetchpriority="high" />
+              <span class="preview-play" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none"><path d="m7 4 9 6-9 6V4Z" fill="currentColor"/></svg></span>
+              <span class="preview-caption">把每一次闪避，写成下一秒的可能。</span>
+            </a>
+            <div class="game-content">
+              <div class="game-title-row"><div><span class="game-english">PAPER SURVIVOR</span><h3>纸上幸存者</h3></div><span class="genre-label">生存 · 动作</span></div>
+              <p class="game-description">一张纸，一场停不下来的生存挑战。<br/>躲开敌潮，收集成长，在经典与无尽模式里刷新自己。</p>
+              <div class="game-meta"><span><svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M9 2v14M2 9h14M6 5l3-3 3 3M6 13l3 3 3-3M5 6 2 9l3 3m8-6 3 3-3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>自由走位</span><span><svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="m10 1-6 9h5l-1 7 6-10H9l1-6Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>自动攻击</span><span>经典闯关 / 无尽挑战</span></div>
+              <a class="play-link" href="./play.html?game=paper-survivor"><span>开始生存</span><span class="play-link-end"><span>LET’S PLAY</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>
+            </div>
+          </article>
+
+          <article class="game-card tower-card">
+            <a class="preview-link" href="./play.html?game=magic-tower" aria-label="开始玩魔塔">
+              <div class="preview-topline"><span class="game-number">NO. 02</span><span class="preview-badge"><span></span>50 层冒险</span></div>
+              <img class="game-preview" src="./previews/magic-tower.svg" alt="魔塔游戏预览：勇者在像素迷宫中探索，寻找钥匙、宝物与通往高层的阶梯" width="800" height="500" fetchpriority="high" />
+              <span class="preview-play" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none"><path d="m7 4 9 6-9 6V4Z" fill="currentColor"/></svg></span>
+              <span class="preview-caption">每一把钥匙，都通向一种选择。</span>
+            </a>
+            <div class="game-content">
+              <div class="game-title-row"><div><span class="game-english">TOWER OF THE SORCERER</span><h3>魔塔<span class="title-detail">五十层的远征</span></h3></div><span class="genre-label">策略 · 冒险</span></div>
+              <p class="game-description">熟悉的像素高塔，重新启程的勇者。<br/>计算战斗、规划路线，让有限的生命带你走得更高。</p>
+              <div class="game-meta"><span><svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M4 16V5h10v11M6 5V2h6v3M2 16h14M7 16v-4h4v4M7 8h1m2 0h1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>完整 50 层</span><span><svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="6" cy="6" r="3" stroke="currentColor" stroke-width="1.2"/><path d="m8 8 7 7m-3-3 2-2m-4 0 2-2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>经典剧情</span><span>本地存档，随时续玩</span></div>
+              <a class="play-link" href="./play.html?game=magic-tower"><span>踏入魔塔</span><span class="play-link-end"><span>LET’S EXPLORE</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="play-notes" aria-label="开始游戏前的小提示">
+        <div class="notes-heading"><span class="note-mark" aria-hidden="true">✳</span><span>轻装上阵，<br/>尽兴而归。</span></div>
+        <div class="note-item"><span class="note-number">01</span><div><h2>找到你的节奏</h2><p>用方向键或 WASD 移动；<br/>更多操作，可查看各游戏内的说明。</p></div></div>
+        <div class="note-item"><span class="note-number">02</span><div><h2>下次，接着冒险</h2><p>魔塔支持浏览器本地存档。<br/>使用同一设备、同一浏览器即可续玩。</p></div></div>
+        <div class="note-item"><span class="note-number">03</span><div><h2>换个世界，也很简单</h2><p>游戏页面始终保留返回入口，<br/>点「返回合集」，就能重新挑选。</p></div></div>
+      </section>
+    </main>
+
+    <footer class="site-footer"><span class="footer-brand">LITTLE ARCADE <span>／</span> 玩一会儿</span><p>一小会儿，也可以很快乐。</p><a href="#page-title" aria-label="返回页面顶部">BACK TO TOP <span aria-hidden="true">↑</span></a></footer>
+  </div>
+</body>
+</html>
