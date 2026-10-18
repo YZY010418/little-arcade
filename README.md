@@ -1,6 +1,10 @@
 # 玩一会儿 · Little Arcade
 
-两个可以直接在浏览器玩的小游戏，共用带预览图的游戏总览与返回入口。
+一个打开就能玩的在线小游戏平台，用游戏预览、简单介绍和统一返回入口，让玩家轻松发现和切换游戏。
+
+[在线游玩](https://yzy010418.github.io/little-arcade/)
+
+当前游戏：
 
 - **纸上幸存者**：涂鸦风格自动攻击生存游戏，经典闯关、无尽模式、升级技能与成就手册。
 - **魔塔 · 50 层**：经典数值策略冒险，包含塔外及 50 层地图、剧情、道具、商店、存读档。
@@ -13,7 +17,7 @@
 python3 -m http.server 4175 --directory site
 ```
 
-打开 `http://localhost:4175`。使用方向键 / WASD 移动；手机使用游戏内虚拟摇杆或方向按钮。游戏页顶部的“返回合集”回到菜单。纸上当前一局结束，成绩和成就保留；魔塔可用“继续远征”读取最近安全时刻的自动存档。也可在魔塔内手动保存不同路线。
+打开 `http://localhost:4175`。点击游戏预览或开始按钮进入游戏，使用游戏页顶部的“返回游戏库”重新挑选。具体操作与进度保存规则以各游戏内的说明为准。
 
 存档只在当前浏览器与域名保存，旧网站或本地预览的进度不会自动迁移到 GitHub Pages。
 
@@ -30,13 +34,13 @@ node tests/check-site.mjs
 node --check site/player.js
 ```
 
-检查入口、相对链接、引擎声明的资源、51 层地图和打包地图的一致性。两张预览是基于游戏实际素材的 SVG 插图。安装 Pillow 后可通过 `python3 scripts/build_previews.py` 重新生成。
+检查入口、相对链接、引擎声明的资源、51 层地图和打包地图的一致性。游戏预览是基于实际素材的 SVG 插图。安装 Pillow 后可通过 `python3 scripts/build_previews.py` 重新生成。
 
 ```text
 site/
   index.html             游戏总览
   play.html              游戏页与返回导航
-  previews/              两款游戏的预览图
+  previews/              游戏预览图
   games/paper-survivor/   纸上幸存者
   games/magic-tower/      魔塔界面、地图、引擎及素材
 ```
