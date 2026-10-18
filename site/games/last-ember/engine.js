@@ -1,30 +1,28 @@
 (function (root) {
   'use strict';
-  const CENTER = { x: 1100, y: 900 };
-  const SAVE_VERSION = 1;
+  const World = typeof module !== 'undefined' && module.exports ? require('./world.js') : root.WinterWorld;
+  const CENTER = World.center;
+  const SAVE_VERSION = 2;
   const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
   const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
   const furnaceCosts = [{ wood: 45, ore: 8 }, { wood: 115, ore: 34 }];
   const gearCosts = {
     axe: [{ wood: 24, ore: 6 }, { wood: 65, ore: 24 }],
     pack: [{ wood: 28, ore: 4 }, { wood: 55, ore: 14 }],
-    boots: [{ wood: 32, ore: 8 }, { wood: 65, ore: 20 }]
+    boots: [{ wood: 32, ore: 8 }, { wood: 65, ore: 20 }],
+    coat: [{ wood: 32, ore: 8 }, { wood: 65, ore: 20 }]
   };
-  const names = { axe: '伐木斧', pack: '背包', boots: '雪地靴' };
+  const names = { axe: '伐木斧', pack: '背包', boots: '雪地靴', coat: '防寒服' };
   class WinterEngine {
     constructor(seed = 7301) {
       this.state = {
         version: SAVE_VERSION, seed, rng: seed >>> 0, mode: 'menu', time: 0,
-        player: { x: 1100, y: 1020, hp: 100, temp: 100, bag: { wood: 0, ore: 0 }, axe: 1, pack: 1, boots: 1, face: { x: 0, y: 1 }, swing: 0, hurt: 0, moving: false, gather: 0, attack: 0, invincible: 0 },
+        player: { x: CENTER.x, y: CENTER.y + 120, hp: 100, temp: 100, bag: { wood: 0, ore: 0 }, axe: 1, pack: 1, boots: 1, coat: 1, frozen: false, freezeTimer: 0, coldWarned: false, face: { x: 0, y: 1 }, swing: 0, hurt: 0, moving: false, gather: 0, attack: 0, invincible: 0 },
         resources: { wood: 0, ore: 0 },
-        furnace: { id: 'furnace', kind: 'furnace', name: '中央熔炉', x: 1100, y: 900, level: 1, fuel: 85, hp: 100, maxHp: 100 },
-        towers: [
-          { id: 'pine', name: '松林供热塔', x: 620, y: 550, cost: { wood: 85, ore: 24 } },
-          { id: 'ridge', name: '山脊供热塔', x: 1580, y: 550, cost: { wood: 110, ore: 32 } },
-          { id: 'lake', name: '湖畔供热塔', x: 1100, y: 1450, cost: { wood: 140, ore: 40 } }
-        ].map(t => ({ ...t, kind: 'tower', built: false, hp: 160, maxHp: 160 })),
-        camp: { id: 'camp', kind: 'camp', name: '伐木营地', x: 865, y: 940, built: false, production: 0, cost: { wood: 35, ore: 8 } },
-        turrets: [[1100, 680], [1310, 1000], [900, 1090]].map(([x, y], i) => ({ id: 'turret' + (i + 1), kind: 'turret', name: '守望箭塔 ' + (i + 1), x, y, built: false, hp: 120, maxHp: 120, cooldown: 0, cost: { wood: 45, ore: 14 } })),
+        furnace: { id: 'furnace', kind: 'furnace', name: '中央熔炉', ...CENTER, level: 1, fuel: 85, hp: 100, maxHp: 100 },
+        towers: World.towers.map((tower, i) => ({ ...tower, cost: [{ wood: 85, ore: 24 }, { wood: 110, ore: 32 }, { wood: 140, ore: 40 }][i], kind: 'tower', built: false, hp: 160, maxHp: 160 })),
+        camp: { id: 'camp', kind: 'camp', name: '伐木营地', x: CENTER.x - 235, y: CENTER.y + 40, built: false, production: 0, cost: { wood: 35, ore: 8 } },
+        turrets: [[0, -220], [210, 100], [-200, 190]].map(([x, y], i) => ({ id: 'turret' + (i + 1), kind: 'turret', name: '守望箭塔 ' + (i + 1), x: CENTER.x + x, y: CENTER.y + y, built: false, hp: 120, maxHp: 120, cooldown: 0, cost: { wood: 45, ore: 14 } })),
         nodes: [], enemies: [], workers: [], wave: { number: 0, timer: 110 },
         final: { active: false, elapsed: 0, bossSpawned: false, nextSpawn: 0 },
         warmth: 0, kills: 0, rescues: 0, nextEnemy: 1, autoFeed: true, heatClock: 0, hintClock: 0
@@ -47,20 +45,22 @@
         const amount = type === 'tree' ? 24 : 20;
         this.state.nodes.push({ id: 'node' + this.state.nodes.length, type, x, y, amount, max: amount, respawn: 0, hit: 0 });
       };
-      [[1240, 1010], [1260, 870], [1145, 1105], [1030, 1115], [955, 780], [1185, 715], [790, 1040], [790, 840]].forEach(p => put('tree', ...p));
-      [[1345, 805], [1310, 1170], [935, 1150], [890, 665], [1460, 935]].forEach(p => put('ore', ...p));
-      for (let i = 0; i < 750 && this.state.nodes.length < 145; i++) {
+      [[140, 110], [160, -30], [45, 205], [-70, 215], [-145, -120], [85, -185], [-310, 140], [-310, -60]].forEach(([x, y]) => put('tree', CENTER.x + x, CENTER.y + y));
+      [[245, -95], [210, 270], [-165, 250], [-210, -235], [360, 35]].forEach(([x, y]) => put('ore', CENTER.x + x, CENTER.y + y));
+      for (let i = 0; i < 1800 && this.state.nodes.length < 230; i++) {
         const angle = this.random() * Math.PI * 2;
-        const r = 150 + Math.sqrt(this.random()) * 635;
-        const p = { x: CENTER.x + Math.cos(angle) * r, y: CENTER.y + Math.sin(angle) * r * .92 };
-        if (structures.some(s => distance(s, p) < 115) || this.state.nodes.some(n => distance(n, p) < 64)) continue;
-        put(this.random() < .28 ? 'ore' : 'tree', p.x, p.y);
+        const radius = .13 + Math.sqrt(this.random()) * .83;
+        const p = { x: CENTER.x + Math.cos(angle) * World.bounds.rx * radius, y: CENTER.y + Math.sin(angle) * World.bounds.ry * radius };
+        if (World.riverDistance(p.x, p.y) < 80 || structures.some(s => distance(s, p) < 115) || this.state.nodes.some(n => distance(n, p) < 78)) continue;
+        const region = World.regionAt(p.x, p.y);
+        if (region === 'plain' && this.random() < .7) continue;
+        put(this.random() < (region === 'mountain' ? .6 : .28) ? 'ore' : 'tree', p.x, p.y);
       }
     }
     start() { this.state.mode = 'playing'; this.notify('先去砍树，把木材带回炉旁。靠近树木会自动采集。'); }
     pause() { if (this.state.mode === 'playing') this.state.mode = 'paused'; }
     resume() { if (this.state.mode === 'paused') this.state.mode = 'playing'; }
-    notify(text, type = 'info') { this.events.push({ text, type }); if (this.events.length > 30) this.events.shift(); }
+    notify(text, type = 'info', metadata = {}) { this.events.push({ text, type, ...metadata }); if (this.events.length > 30) this.events.shift(); }
     drainEvents() { return this.events.splice(0); }
     effect(type, x, y, text = '', color = '#ffbd71') {
       this.effects.push({ type, x, y, text, color, life: 1, maxLife: 1 });
@@ -70,20 +70,124 @@
     bagCapacity() { return 28 + (this.state.player.pack - 1) * 22; }
     heatSources() {
       const s = this.state;
-      if (s.mode === 'won') return [{ ...CENTER, r: 2200 }];
+      if (s.mode === 'won') return [{ ...CENTER, r: Math.hypot(World.width, World.height) }];
       const f = s.furnace;
       const strength = f.fuel > 0 && f.hp > 0 ? 1 : .34;
-      const sources = [{ x: f.x, y: f.y, r: (235 + (f.level - 1) * 95) * strength }];
-      for (const t of s.towers) if (t.built && t.hp > 0) sources.push({ x: t.x, y: t.y, r: f.fuel > 0 ? 570 : 170 });
+      const sources = [{ x: f.x, y: f.y, r: World.FURNACE_RADII[f.level - 1] * strength }];
+      for (const t of s.towers) if (t.built && t.hp > 0) sources.push({ x: t.x, y: t.y, r: f.fuel > 0 ? World.towerRadius : World.towerRadius * .3 });
       return sources;
     }
     warmAt(x, y) { return this.heatSources().some(h => Math.hypot(h.x - x, h.y - y) <= h.r); }
+    coldRate(x = this.state.player.x, y = this.state.player.y) {
+      return this.warmAt(x, y) ? 0 : 3.3 * World.coldMultiplier(x, y) / (1 + .4 * (this.state.player.coat - 1));
+    }
+    createWorkers() {
+      const camp = this.state.camp;
+      this.state.workers = [12, 16].map((capacity, index) => ({
+        id: 'worker' + (index + 1), x: camp.x + (index ? 25 : -25), y: camp.y + 30,
+        bag: { wood: 0, ore: 0 }, capacity, moving: false, face: { x: 0, y: 1 },
+        swing: 0, phase: index * 2, task: 'seek', targetId: null, chopTimer: 0
+      }));
+    }
+    depositCargo(actor, target, source) {
+      const wood = actor.bag.wood, ore = actor.bag.ore;
+      if (wood + ore <= 0) return;
+      this.state.resources.wood += wood;
+      this.state.resources.ore += ore;
+      actor.bag.wood = actor.bag.ore = 0;
+      const label = [wood ? '木材 +' + wood : '', ore ? '矿石 +' + ore : ''].filter(Boolean).join(' · ');
+      this.effect('deposit', target.x, target.y, label);
+      this.effect('transfer', actor.x, actor.y, '', source === 'worker' ? '#c7d7a0' : '#efbc79');
+      Object.assign(this.effects[this.effects.length - 1], { targetX: target.x, targetY: target.y, wood, ore, source });
+      this.notify((source === 'worker' ? '工人卸货：' : '物资已入库：') + label, 'deposit', { wood, ore, source, x: target.x, y: target.y });
+    }
+    updateWorkers(dt) {
+      const s = this.state;
+      if (!s.camp.built) return;
+      for (const worker of s.workers) {
+        worker.phase += dt * .8;
+        worker.swing = Math.max(0, worker.swing - dt);
+        worker.chopTimer -= dt;
+        worker.moving = false;
+        if (worker.task === 'seek') {
+          if (worker.bag.wood >= worker.capacity) worker.task = 'return';
+          else if (worker.chopTimer <= 0) {
+            const reserved = s.workers.filter(other => other !== worker).map(other => other.targetId);
+            const trees = s.nodes.filter(node => node.type === 'tree' && node.amount > 0 && !reserved.includes(node.id));
+            trees.sort((a, b) => distance(a, worker) + distance(a, s.furnace) * .4 - distance(b, worker) - distance(b, s.furnace) * .4);
+            if (trees.length) { worker.targetId = trees[0].id; worker.task = 'walk'; }
+            else if (worker.bag.wood > 0) worker.task = 'return';
+            else worker.chopTimer = 1;
+          }
+        }
+        if (worker.task === 'walk' || worker.task === 'chop') {
+          const node = s.nodes.find(node => node.id === worker.targetId && node.type === 'tree' && node.amount > 0);
+          if (!node) { worker.targetId = null; worker.task = worker.bag.wood >= worker.capacity ? 'return' : 'seek'; continue; }
+          const d = distance(worker, node);
+          if (d > 34) {
+            worker.task = 'walk';
+            this.moveWorker(worker, node, dt);
+          } else {
+            worker.task = 'chop';
+            worker.face = { x: (node.x - worker.x) / (d || 1), y: (node.y - worker.y) / (d || 1) };
+            if (worker.chopTimer <= 0) {
+              const amount = Math.min(1, node.amount, worker.capacity - worker.bag.wood);
+              node.amount -= amount; worker.bag.wood += amount;
+              node.hit = .22; worker.swing = .32; worker.chopTimer = 2.4;
+              if (node.amount <= 0) node.respawn = 48;
+              this.effect('gather', node.x, node.y, '+' + amount, '#c7d7a0');
+              if (worker.bag.wood >= worker.capacity) { worker.targetId = null; worker.task = 'return'; }
+            }
+          }
+        } else if (worker.task === 'return') {
+          worker.targetId = null;
+          if (distance(worker, s.furnace) > 70) this.moveWorker(worker, s.furnace, dt);
+          else worker.task = 'unload';
+        } else if (worker.task === 'unload') {
+          if (distance(worker, s.furnace) > 95) worker.task = 'return';
+          else {
+            this.depositCargo(worker, s.furnace, 'worker');
+            worker.task = 'seek'; worker.chopTimer = 0;
+          }
+        }
+      }
+    }
+    moveWorker(worker, target, dt) {
+      const d = distance(worker, target) || 1;
+      worker.face = { x: (target.x - worker.x) / d, y: (target.y - worker.y) / d };
+      const amount = Math.min(d, dt * 92);
+      worker.x += worker.face.x * amount; worker.y += worker.face.y * amount;
+      worker.moving = true;
+    }
+    updateTemperature(dt) {
+      const p = this.state.player;
+      const warm = this.warmAt(p.x, p.y), wasZero = p.temp <= 0;
+      p.temp = clamp(p.temp + dt * (warm ? 18 : -this.coldRate()), 0, 100);
+      if (p.temp < 30 && !p.coldWarned) {
+        p.coldWarned = true;
+        this.notify('体温过低，行动变慢！尽快回到暖区，防寒服能延长外出时间。', 'cold');
+      }
+      if (p.temp >= 60) p.coldWarned = false;
+      if ((wasZero || p.temp <= 0) && !p.frozen) {
+        p.frozen = true; p.freezeTimer = 0; p.moving = false; p.swing = 0;
+        this.notify('你被冻住了，暂时无法移动和工作。5 秒后救援队会把你带回炉旁。', 'freeze');
+      }
+      if (!p.frozen) return false;
+      if (warm && p.temp >= 20) {
+        p.frozen = false; p.freezeTimer = 0;
+        this.notify('体温恢复，可以继续行动了。', 'thaw');
+        return false;
+      }
+      p.freezeTimer += dt;
+      if (p.freezeTimer >= 5 - 1e-8) { this.rescue(); return true; }
+      return false;
+    }
     updateWarmth() {
       if (this.state.mode === 'won') { this.state.warmth = 100; return; }
       let covered = 0, total = 0;
       const heat = this.heatSources();
-      for (let x = 300; x <= 1900; x += 80) for (let y = 160; y <= 1640; y += 80) {
-        if (Math.hypot((x - 1100) / 820, (y - 900) / 755) > 1) continue;
+      for (let x = CENTER.x - World.bounds.rx; x <= CENTER.x + World.bounds.rx; x += 100) for (let y = CENTER.y - World.bounds.ry; y <= CENTER.y + World.bounds.ry; y += 100) {
+        if (Math.hypot((x - CENTER.x) / World.bounds.rx, (y - CENTER.y) / World.bounds.ry) > 1) continue;
         total++;
         if (heat.some(h => Math.hypot(h.x - x, h.y - y) <= h.r)) covered++;
       }
@@ -97,7 +201,7 @@
     upgrades() {
       return Object.keys(gearCosts).map(key => {
         const level = this.state.player[key];
-        const reason = level >= 3 ? '已达最高等级' : !this.warmAt(this.state.player.x, this.state.player.y) ? '请回到暖区升级' : '';
+        const reason = level >= 3 ? '已达最高等级' : this.state.player.frozen ? '冻结时无法升级，请先等待救援' : !this.warmAt(this.state.player.x, this.state.player.y) ? '请回到暖区升级' : '';
         return this.option('upgrade:' + key, names[key] + (level >= 3 ? ' · 已满级' : ' → Lv.' + (level + 1)), gearCosts[key][level - 1] || {}, reason);
       });
     }
@@ -126,7 +230,7 @@
       if (!target) return null;
       const descriptions = {
         furnace: '炉旁自动卸货。燃料低于 25 时，会用仓库木材自动添火。',
-        camp: target.built ? '工人正在伐木，每秒为仓库送来木材。' : '救出受困工人，让他们承担日常木材采集。',
+        camp: target.built ? '工人会走到树旁伐木，背回炉旁后将木材存入仓库。' : '救出受困工人，让他们承担日常木材采集。',
         tower: target.built ? '温暖正在扩散，靠近这里也能卸货、恢复体温。' : '让温暖抵达这片雪原。修复后可在这里卸货。',
         turret: target.built ? '自动射击附近入侵者。受损后可用木材修复。' : '建造守望箭塔，自动抵御附近的入侵者。'
       };
@@ -135,6 +239,12 @@
     action(id) {
       const s = this.state;
       if (s.mode !== 'playing') return { ok: false, text: '请先开始或继续游戏' };
+      if (id === 'rescue') {
+        if (!s.player.frozen) return { ok: false, text: '尚未冻结，可以自行返回暖区' };
+        this.rescue(); return { ok: true, text: '救援队已把你带回炉旁' };
+      }
+      if (s.player.frozen) return { ok: false, text: '你已冻结，请等待或呼叫救援' };
+      if (typeof id !== 'string') return { ok: false, text: '未知操作' };
       let option, target;
       if (id.startsWith('upgrade:') && names[id.split(':')[1]]) option = this.upgrades().find(o => o.id === id);
       else {
@@ -154,8 +264,8 @@
       else if (id.startsWith('build:')) {
         target.built = true;
         if (target.kind === 'camp') {
-          s.workers = [{ x: target.x - 25, y: target.y + 30, phase: 0 }, { x: target.x + 25, y: target.y + 20, phase: 2 }];
-          message = '两位工人得救了！伐木营地开始持续供应木材。';
+          this.createWorkers();
+          message = '两位工人得救了！他们会采集树木，再将物资运回炉旁。';
         } else if (target.kind === 'tower') {
           message = target.name + '已点亮！温暖正在融化积雪。';
           s.wave.timer = Math.min(s.wave.timer, 38);
@@ -183,39 +293,34 @@
       s.time += dt; s.hintClock += dt;
       p.swing = Math.max(0, p.swing - dt); p.hurt = Math.max(0, p.hurt - dt); p.invincible = Math.max(0, p.invincible - dt);
       p.attack -= dt; p.gather -= dt;
+      const rescuedFromCold = this.updateTemperature(dt);
       let dx = Number.isFinite(input.x) ? clamp(input.x, -1, 1) : 0;
       let dy = Number.isFinite(input.y) ? clamp(input.y, -1, 1) : 0;
       const length = Math.hypot(dx, dy);
       if (length > 1) { dx /= length; dy /= length; }
-      p.moving = length > .08;
+      p.moving = length > .08 && !p.frozen && !rescuedFromCold;
       if (p.moving) {
         p.face = { x: dx, y: dy };
-        const speed = (132 + (p.boots - 1) * 19) * (p.temp < 25 ? .72 : 1);
+        const speed = (132 + (p.boots - 1) * 19) * (p.temp < 30 ? .72 : 1);
         p.x += dx * speed * dt; p.y += dy * speed * dt;
-        const r = Math.hypot((p.x - 1100) / 810, (p.y - 900) / 745);
-        if (r > 1) { p.x = 1100 + (p.x - 1100) / r; p.y = 900 + (p.y - 900) / r; }
+        Object.assign(p, World.clampPoint(p));
       }
       const warm = this.warmAt(p.x, p.y);
-      p.temp = clamp(p.temp + dt * (warm ? 13 : -(1.25 + (s.final.active ? .65 : 0)) / (1 + (p.boots - 1) * .3)), 0, 100);
       if (warm && !s.enemies.some(e => distance(e, p) < 150)) p.hp = Math.min(100, p.hp + dt * 3.5);
       if (p.temp <= 0) p.hp -= dt * 7;
       const built = s.towers.filter(t => t.built).length;
       s.furnace.fuel = Math.max(0, s.furnace.fuel - dt * (.10 + .025 * s.furnace.level + .035 * built));
       if (s.autoFeed && s.furnace.fuel < 25 && s.resources.wood >= 10) {
-        s.resources.wood -= 10; s.furnace.fuel += 40; this.effect('spark', 1100, 900, '自动添火');
+        s.resources.wood -= 10; s.furnace.fuel += 40; this.effect('spark', s.furnace.x, s.furnace.y, '自动添火');
       }
       const depot = [s.furnace, ...s.towers.filter(t => t.built && t.hp > 0)].find(t => distance(t, p) < 95);
-      if (depot && p.bag.wood + p.bag.ore > 0) {
-        s.resources.wood += p.bag.wood; s.resources.ore += p.bag.ore;
-        this.effect('deposit', depot.x, depot.y, '+' + (p.bag.wood + p.bag.ore));
-        p.bag.wood = p.bag.ore = 0;
-      }
+      if (depot) this.depositCargo(p, depot, 'player');
       for (const node of s.nodes) {
         node.hit = Math.max(0, node.hit - dt);
         if (node.amount <= 0) { node.respawn -= dt; if (node.respawn <= 0) node.amount = node.max; }
       }
       const enemyInRange = s.enemies.some(e => e.hp > 0 && distance(e, p) < 100);
-      if (!enemyInRange && p.gather <= 0 && p.bag.wood + p.bag.ore < this.bagCapacity()) {
+      if (!p.frozen && !rescuedFromCold && !enemyInRange && p.gather <= 0 && p.bag.wood + p.bag.ore < this.bagCapacity()) {
         const node = s.nodes.filter(n => n.amount > 0 && distance(n, p) < 72).sort((a, b) => distance(a, p) - distance(b, p))[0];
         if (node) {
           const key = node.type === 'tree' ? 'wood' : 'ore';
@@ -225,15 +330,7 @@
           this.effect('gather', node.x, node.y, '+' + amount, key === 'wood' ? '#efbc79' : '#b5deef');
         }
       }
-      if (s.camp.built) {
-        s.camp.production += dt * .72;
-        if (s.camp.production >= 1) { const n = Math.floor(s.camp.production); s.resources.wood += n; s.camp.production -= n; }
-        for (let i = 0; i < s.workers.length; i++) {
-          const worker = s.workers[i]; worker.phase += dt * .8;
-          worker.x = s.camp.x + Math.sin(worker.phase) * 68;
-          worker.y = s.camp.y + 28 + Math.cos(worker.phase * 1.1) * 34;
-        }
-      }
+      this.updateWorkers(dt);
       this.updateWaves(dt);
       this.updateCombat(dt);
       if (p.hp <= 0) this.rescue();
@@ -254,7 +351,7 @@
         const a = angle + (i - count / 2) * .11;
         const type = boss && i === 0 ? 'boss' : 'wolf';
         const hp = type === 'boss' ? 720 : 48 + Math.min(36, s.wave.number * 4);
-        s.enemies.push({ id: s.nextEnemy++, type, x: 1100 + Math.cos(a) * 770, y: 900 + Math.sin(a) * 700, hp, maxHp: hp, face: { x: 0, y: 1 }, hit: 0, cooldown: 0 });
+        s.enemies.push({ id: s.nextEnemy++, type, x: CENTER.x + Math.cos(a) * World.bounds.rx * .94, y: CENTER.y + Math.sin(a) * World.bounds.ry * .94, hp, maxHp: hp, face: { x: 0, y: 1 }, hit: 0, cooldown: 0 });
       }
       const direction = Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle)) ? (Math.cos(angle) > 0 ? '东侧' : '西侧') : Math.sin(angle) > 0 ? '南侧' : '北侧';
       this.notify(boss ? '霜牙巨兽出现！靠近箭塔，与它合力战斗。' : '第 ' + s.wave.number + ' 波兽潮从' + direction + '来袭！', 'wave');
@@ -280,7 +377,7 @@
     updateCombat(dt) {
       const s = this.state, p = s.player;
       const nearby = s.enemies.filter(e => e.hp > 0 && distance(e, p) < 100).sort((a, b) => distance(a, p) - distance(b, p));
-      if (nearby.length && p.attack <= 0) {
+      if (!p.frozen && nearby.length && p.attack <= 0) {
         const enemy = nearby[0], d = distance(p, enemy) || 1;
         p.face = { x: (enemy.x - p.x) / d, y: (enemy.y - p.y) / d };
         p.attack = .7 - (p.axe - 1) * .08; p.swing = .28;
@@ -321,10 +418,11 @@
     }
     rescue() {
       const s = this.state, p = s.player;
-      s.rescues++; p.x = 1100; p.y = 1010; p.hp = 85; p.temp = 100; p.invincible = 5;
+      s.rescues++; p.x = s.furnace.x; p.y = s.furnace.y + 110; p.hp = 85; p.temp = 100; p.invincible = 5;
+      p.frozen = false; p.freezeTimer = 0; p.coldWarned = false; p.moving = false; p.swing = 0;
       p.bag.wood = Math.floor(p.bag.wood * .75); p.bag.ore = Math.floor(p.bag.ore * .75);
       this.effect('rescue', p.x, p.y, '营地救援');
-      this.notify('你被救回了炉旁，丢失少量背包物资。装备与建筑都保留。', 'danger');
+      this.notify('你被救回了炉旁，丢失少量背包物资。装备与建筑都保留。', 'rescue');
     }
     objective() {
       const s = this.state, lit = s.towers.filter(t => t.built && t.hp > 0).length;
@@ -340,12 +438,13 @@
     static restore(json) {
       try {
         if (typeof json === 'string' && json.length > 500000) return null;
-        const data = typeof json === 'string' ? JSON.parse(json) : JSON.parse(JSON.stringify(json));
+        let data = typeof json === 'string' ? JSON.parse(json) : JSON.parse(JSON.stringify(json));
         const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+        const legacy = object(data) && data.version === 1;
         const number = (value, min = 0, max = 1e7) => typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max;
         const integer = (value, min = 0, max = 1e7) => Number.isInteger(value) && number(value, min, max);
         const fields = (value, keys, min = 0, max = 1e7) => object(value) && keys.every(key => number(value[key], min, max));
-        const point = value => fields(value, ['x'], 0, 2200) && fields(value, ['y'], 0, 1800);
+        const point = value => fields(value, ['x'], 0, legacy ? 2200 : World.width) && fields(value, ['y'], 0, legacy ? 1800 : World.height);
         const face = value => fields(value, ['x', 'y'], -1, 1);
         const resources = value => fields(value, ['wood', 'ore'], 0, 1e9);
         const health = value => fields(value, ['maxHp'], 1, 1000) && number(value.hp, 0, value.maxHp);
@@ -354,30 +453,62 @@
         const roster = (values, ids, kind) => Array.isArray(values) && values.length === ids.length &&
           ids.every(id => values.filter(value => object(value) && value.id === id).length === 1) &&
           values.every(value => buildable(value, kind) && health(value));
-        if (!object(data) || data.version !== SAVE_VERSION || !['playing', 'paused', 'won', 'menu'].includes(data.mode)) return null;
+        if (!object(data) || (!legacy && data.version !== SAVE_VERSION) || !['playing', 'paused', 'won', 'menu'].includes(data.mode)) return null;
         if (!integer(data.seed, 0, 0xffffffff) || !integer(data.rng, 0, 0xffffffff) || !number(data.time)) return null;
         const p = data.player, f = data.furnace, finale = data.final;
         if (!point(p) || !fields(p, ['hp', 'temp'], 0, 100) || !resources(p.bag) || !resources(data.resources)) return null;
         if (!['axe', 'pack', 'boots'].every(key => integer(p[key], 1, 3)) || p.bag.wood + p.bag.ore > 28 + (p.pack - 1) * 22) return null;
         if (!face(p.face) || typeof p.moving !== 'boolean' || !fields(p, ['swing', 'hurt', 'invincible'], 0, 10) || !fields(p, ['gather', 'attack'], -1e7, 10)) return null;
+        if (!legacy && (!integer(p.coat, 1, 3) || typeof p.frozen !== 'boolean' || typeof p.coldWarned !== 'boolean' || !number(p.freezeTimer, 0, 5))) return null;
         if (!building(f, 'furnace') || f.id !== 'furnace' || !health(f) || !integer(f.level, 1, 3) || !number(f.fuel, 0, 100)) return null;
         if (!roster(data.towers, ['pine', 'ridge', 'lake'], 'tower') || !roster(data.turrets, ['turret1', 'turret2', 'turret3'], 'turret')) return null;
         if (data.turrets.some(value => !number(value.cooldown, -1e7, 10))) return null;
         if (!buildable(data.camp, 'camp') || data.camp.id !== 'camp' || !number(data.camp.production, 0, 1)) return null;
         if (!Array.isArray(data.workers) || data.workers.length > 2 || data.workers.some(value => !point(value) || !number(value.phase))) return null;
-        if (!Array.isArray(data.nodes) || !data.nodes.length || data.nodes.length > 250 || data.nodes.some(value =>
-          !point(value) || typeof value.id !== 'string' || !['tree', 'ore'].includes(value.type) || !number(value.max, 1, 1000) ||
+        if (!Array.isArray(data.nodes) || !data.nodes.length || data.nodes.length > 400 || data.nodes.some(value =>
+          !point(value) || typeof value.id !== 'string' || value.id.length > 80 || !['tree', 'ore'].includes(value.type) || !number(value.max, 1, 1000) ||
           !number(value.amount, 0, value.max) || !number(value.respawn, -1, 300) || !number(value.hit, 0, 1))) return null;
+        if (new Set(data.nodes.map(node => node.id)).size !== data.nodes.length) return null;
+        if (!legacy && (data.workers.length !== (data.camp.built ? 2 : 0) || data.workers.some((worker, index) =>
+          worker.id !== 'worker' + (index + 1) || worker.capacity !== (index ? 16 : 12) || !resources(worker.bag) || worker.bag.ore !== 0 || worker.bag.wood > worker.capacity ||
+          typeof worker.moving !== 'boolean' || !face(worker.face) || !number(worker.swing, 0, 1) || !number(worker.chopTimer, -1e7, 3) ||
+          !['seek', 'walk', 'chop', 'return', 'unload'].includes(worker.task) ||
+          (worker.targetId !== null && !data.nodes.some(node => node.id === worker.targetId && node.type === 'tree')) ||
+          (['walk', 'chop'].includes(worker.task) && worker.targetId === null)))) return null;
         if (!Array.isArray(data.enemies) || data.enemies.length > 100 || data.enemies.some(value =>
           !point(value) || !integer(value.id, 1) || !['wolf', 'boss'].includes(value.type) || !health(value) || !face(value.face) ||
           !number(value.hit, 0, 1) || !number(value.cooldown, -1e7, 10))) return null;
+        if (new Set(data.enemies.map(enemy => enemy.id)).size !== data.enemies.length) return null;
         if (!object(data.wave) || !integer(data.wave.number) || !number(data.wave.timer, 0, 110)) return null;
         if (!object(finale) || typeof finale.active !== 'boolean' || typeof finale.bossSpawned !== 'boolean' || !number(finale.elapsed) || !integer(finale.nextSpawn, 0, 60)) return null;
         if (!['kills', 'rescues'].every(key => integer(data[key])) || !integer(data.nextEnemy, 1) || typeof data.autoFeed !== 'boolean' ||
           !number(data.warmth, 0, 100) || !number(data.heatClock, 0, 1) || !number(data.hintClock)) return null;
         if (data.mode === 'won' && (!finale.active || finale.elapsed < 60 || !finale.bossSpawned || data.enemies.length || data.towers.some(t => !t.built || t.hp <= 0) || f.hp <= 0)) return null;
         const engine = new WinterEngine(data.seed);
+        if (legacy) {
+          const fresh = engine.state;
+          const dx = CENTER.x - 1100, dy = CENTER.y - 900;
+          const translate = value => World.clampPoint({ x: value.x + dx, y: value.y + dy });
+          data = {
+            ...data, version: SAVE_VERSION,
+            player: { ...p, ...translate(p), coat: p.boots, frozen: false, freezeTimer: 0, coldWarned: false },
+            furnace: { ...f, x: fresh.furnace.x, y: fresh.furnace.y },
+            camp: { ...fresh.camp, built: data.camp.built },
+            towers: fresh.towers.map(tower => {
+              const old = data.towers.find(value => value.id === tower.id);
+              return { ...tower, built: old.built, hp: old.hp, maxHp: old.maxHp };
+            }),
+            turrets: fresh.turrets.map(turret => {
+              const old = data.turrets.find(value => value.id === turret.id);
+              return { ...turret, built: old.built, hp: old.hp, maxHp: old.maxHp, cooldown: old.cooldown };
+            }),
+            nodes: fresh.nodes, workers: [],
+            enemies: data.enemies.map(enemy => ({ ...enemy, ...translate(enemy) }))
+          };
+        }
         engine.state = data;
+        if (legacy && data.camp.built) engine.createWorkers();
+        if (legacy) engine.notify('旧进度已迁移到新雪原，装备、物资和建筑均已保留。', 'info');
         if (data.mode === 'playing') data.mode = 'paused';
         engine.updateWarmth();
         return engine;

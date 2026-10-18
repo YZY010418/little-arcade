@@ -22,6 +22,7 @@ jobs:
         run: |
           node tests/check-site.mjs
           node tests/last-ember.test.cjs
+          node tests/last-ember-feedback.test.cjs
           node tests/last-ember-playthrough.cjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4

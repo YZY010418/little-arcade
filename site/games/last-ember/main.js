@@ -1,9 +1,12 @@
-import './engine.js';
-import './renderer.js';
+import './world.js?v=2';
+import './engine.js?v=2';
+import './renderer.js?v=2';
 
 function $(id) {
   return document.getElementById(id);
 }
+const world = window.WinterWorld;
+// Keep the original storage key so existing expeditions can migrate in place.
 const SAVE_KEY = 'little-arcade-last-ember-v1';
 const SOUND_KEY = 'little-arcade-last-ember-sound';
 const canvas = $('world');
@@ -14,6 +17,8 @@ let engine = new window.WinterEngine();
 const renderer = new window.WinterRenderer(canvas, engine);
 let walkTarget = null;
 let modalResume = false;
+let mapResume = false;
+let receiptUntil = 0, lastWorkerSound = 0;
 let lastFrame = performance.now();
 let uiClock = 0, saveClock = 0, bagHintClock = 0;
 let toastUntil = 0, audioClock = 0, lastBag = 0;
@@ -58,6 +63,7 @@ function clearInput() {
   $('joystick-knob').style.transform = 'translate(0px, 0px)';
 }
 function selectEngine(next) {
+  setMapOpen(false, false);
   engine = next; renderer.engine = engine;
   renderer.footprints = [];
   renderer.camera.x = engine.state.player.x;
@@ -101,7 +107,7 @@ function updateUI() {
   setText('food-value', (player.bag.wood + player.bag.ore) + ' / ' + engine.bagCapacity());
   $('food-value').parentElement.parentElement.title = `背包：${player.bag.wood} 木材 / ${player.bag.ore} 矿石。靠近熔炉或已修复供热塔，自动存入仓库。`;
   setText('fuel-value', Math.ceil(state.furnace.fuel) + '%');
-  setText('heat-value', Math.ceil(player.temp) + '%');
+  setText('heat-value', player.frozen ? '冻结' : Math.ceil(player.temp) + '%');
   setText('health-value', Math.ceil(Math.max(0, player.hp)));
   setText('tool-level', player.axe);
   $('heat-fill').style.width = player.temp + '%';
@@ -118,10 +124,78 @@ function updateUI() {
     label.textContent = nearbyStructure.actions.length ? '查看' : '已就绪';
   }
   $('mobile-interact').disabled = !nearbyStructure || state.mode !== 'playing';
+  $('map-button').disabled = state.mode === 'menu';
+  updateThermalStatus();
   $('pause-button').disabled = state.mode === 'menu' || state.mode === 'won';
   $('upgrade-button').disabled = state.mode === 'menu' || state.mode === 'won';
-  document.body.classList.toggle('is-cold', player.temp < 25);
+  document.body.classList.toggle('is-cold', player.temp < 30);
+  document.body.classList.toggle('is-freezing', Boolean(player.frozen));
   document.body.classList.toggle('is-storm', state.final.active && state.mode !== 'won');
+}
+function updateThermalStatus() {
+  const player = engine.state.player;
+  const region = world.regionNames[world.regionAt(player.x, player.y)];
+  const warm = engine.warmAt(player.x, player.y);
+  let status = region + ' · 暖区 · 防寒服 Lv.' + (player.coat || 1);
+  if (player.frozen) status = region + ' · 已冻结，等待救援';
+  else if (!warm) {
+    const rate = engine.coldRate ? engine.coldRate() : 3.3;
+    status = region + ' · 约 ' + Math.ceil(player.temp / rate) + ' 秒后冻结';
+  }
+  setText('thermal-note', status);
+  $('freeze-banner').hidden = !player.frozen || engine.state.mode === 'menu';
+  setText('freeze-countdown', Math.max(0, Math.ceil(5 - (player.freezeTimer || 0))) + ' 秒后营地救援 · 损失部分随身物资');
+}
+function setMapOpen(open, resume = true) {
+  if (open && (dialog.open || engine.state.mode === 'menu')) return;
+  if (open === Boolean(renderer.overview)) return;
+  if (open) {
+    mapResume = engine.state.mode === 'playing';
+    engine.pause(); clearInput(); save();
+  } else {
+    if (resume && mapResume) engine.resume();
+    mapResume = false;
+  }
+  renderer.overview = open;
+  $('map-tools').hidden = !open;
+  document.body.classList.toggle('map-open', open);
+  $('map-button').setAttribute('aria-pressed', String(open));
+  if (open) $('map-close').focus({ preventScroll: true });
+  else canvas.focus({ preventScroll: true });
+  syncAudio(); lastFrame = performance.now();
+}
+function travelTo(point) {
+  setMapOpen(false);
+  if (engine.state.mode !== 'playing' || engine.state.player.frozen) return;
+  clearInput(); walkTarget = world.clampPoint(point);
+}
+function requestRescue() {
+  const result = engine.action('rescue');
+  if (!result.ok) toast(result.text);
+  clearInput(); save(); updateUI();
+}
+function depositFeedback(event) {
+  const now = performance.now();
+  const playerDelivery = event.source === 'player';
+  const visibleWorker = Math.hypot(event.x - engine.state.player.x, event.y - engine.state.player.y) < 450;
+  if (!playerDelivery && !visibleWorker) return;
+  if (playerDelivery) {
+    const items = [];
+    if (event.wood) items.push('+' + event.wood + ' 木材');
+    if (event.ore) items.push('+' + event.ore + ' 矿石');
+    setText('deposit-receipt', items.join('　') + ' · 已存入仓库');
+    $('deposit-receipt').hidden = false; receiptUntil = now + 2900;
+  }
+  for (const key of ['wood', 'ore']) {
+    if (!event[key]) continue;
+    const resource = $(key === 'wood' ? 'wood-value' : 'stone-value').closest('.resource');
+    resource.classList.remove('received');
+    requestAnimationFrame(() => resource.classList.add('received'));
+  }
+  if (playerDelivery || now - lastWorkerSound > 1800) {
+    playDepositSound(event.wood, event.ore, playerDelivery ? 1 : .38);
+    if (!playerDelivery) lastWorkerSound = now;
+  }
 }
 function button(label, callback, className = '') {
   const element = document.createElement('button');
@@ -167,7 +241,8 @@ function executeAction(id, redraw) {
 const gearDescriptions = {
   axe: '提升伐木、采矿速度和近战攻击力。挥斧可以同时击中更多敌人。',
   pack: '增加随身携带量，减少往返卸货。',
-  boots: '提升行走速度，降低寒冷区域的体温消耗。'
+  boots: '提升行走速度，更快往返暖区与采集地。',
+  coat: '降低失温速度，延长野外停留时间；探索山巅前尤其有用。'
 };
 function renderOptions(options, descriptionFor, redraw) {
   const grid = document.createElement('div'); grid.className = 'upgrade-grid';
@@ -204,7 +279,7 @@ function interact() {
     if (near.actions.length) renderOptions(near.actions, option => {
       if (option.id === 'final') return '开始后不再出现普通兽潮。坚守 60 秒、击败霜牙巨兽，并让 3 座供热塔保持运转。建议先提升斧头，修好箭塔。';
       if (option.id === 'upgrade:furnace') return '扩大暖区，并恢复燃料和耐久。2 级熔炉可修复供热塔与箭塔。';
-      if (option.id === 'build:camp') return '营地每天都有人守望。两位工人会持续将木材送入仓库。';
+      if (option.id === 'build:camp') return '营地每天都有人守望。两位工人会寻找树木、砍伐、背回炉旁卸货。只有送达的木材才会进入仓库。';
       return option.id.startsWith('repair:') ? '恢复全部耐久，让建筑重新运转。' : near.description;
     }, interact);
     else content.append(paragraph('一切运转正常，继续探索这片山谷吧。'));
@@ -216,8 +291,10 @@ function showHelp() {
     const instructions = [
       '移动：WASD / 方向键，也可点击地图前往。手机拖动左下角摇杆。靠近树木、矿石自动采集，靠近敌人自动挥斧。',
       '卸货：走到熔炉或已点亮的供热塔旁，背包会自动存入仓库。所有建造和升级都使用仓库资源。',
-      '建造：靠近建筑按 E；按 U 或点下方「探索装备」升级斧头、背包、雪地靴。营地会自动产出木材，箭塔会自动攻击。',
-      '保暖：暖区恢复体温和生命；在雪地停留过久会失温。燃料不足时自动消耗 10 木材添火，也能在炉旁手动添火。',
+      '建造：靠近建筑按 E；按 U 或点下方「探索装备」升级斧头、背包、雪地靴和防寒服。工人会往返伐木运货，箭塔会自动攻击。',
+      '保暖：暖区恢复体温和生命。离开暖区会持续失温，山上更冷；体温低于 30% 时减速，耗尽时冻住，无法移动、采集和攻击。升级防寒服可保温，冻住后 5 秒自动救援，也可按 R 立即求救。',
+      '地图：M 或右上角地图按钮展开全图，点击河谷、山巅或原野可导航前往。供暖后河冰消融、山体露出岩石，原野长出花草。查看地图时游戏暂停。',
+      '燃料：不足时自动消耗 10 木材添火，也能在炉旁手动添火。工人背着的木材尚未入库，需要等他们送达。',
       '防守：留意兽潮方向和小地图红点。敌人会破坏供热塔，受损后靠近修复。倒下会获救回到熔炉，保留建筑和装备，损失部分背包物资。',
       '通关：熔炉 3 级、三座供热塔运转后，回到熔炉启动最终挑战。守住 60 秒、击败巨兽并清除敌人，让全图重返春天。',
       '按 Esc / P 暂停，离开页面会自动暂停。进度仅保存在当前浏览器，可在首页继续远行。'
@@ -290,10 +367,30 @@ function playCue(frequency, duration, volume, type = 'sine') {
   syncAudio();
   audioContext?.resume().then(() => tone(frequency, duration, volume, type)).catch(() => {});
 }
-function tone(frequency, duration = .1, volume = .025, type = 'sine') {
+function playDepositSound(wood, ore, volume) {
+  if (!soundEnabled || document.hidden) return;
+  initAudio();
+  audioContext?.resume().then(() => {
+    // Low wooden knocks, bright stone clinks, then a short arrival chime.
+    if (wood > 0) {
+      tone(130, .15, .10 * volume, 'triangle');
+      tone(95, .12, .07 * volume, 'triangle', .09);
+      tone(190, .09, .035 * volume, 'sine', .16);
+    }
+    if (ore > 0) {
+      const offset = wood > 0 ? .2 : 0;
+      tone(910, .12, .055 * volume, 'triangle', offset);
+      tone(1380, .16, .04 * volume, 'sine', offset + .08);
+      tone(1060, .13, .045 * volume, 'triangle', offset + .15);
+    }
+    tone(523.25, .22, .035 * volume, 'sine', .38);
+    tone(783.99, .3, .03 * volume, 'sine', .5);
+  }).catch(() => {});
+}
+function tone(frequency, duration = .1, volume = .025, type = 'sine', delay = 0) {
   if (!audioContext || !soundEnabled || audioContext.state !== 'running') return;
   const oscillator = audioContext.createOscillator();
-  const gain = audioContext.createGain(); const now = audioContext.currentTime;
+  const gain = audioContext.createGain(); const now = audioContext.currentTime + delay;
   oscillator.type = type; oscillator.frequency.value = frequency;
   gain.gain.setValueAtTime(0, now);
   gain.gain.linearRampToValueAtTime(volume, now + .01);
@@ -310,7 +407,16 @@ $('continue-button').addEventListener('click', () => {
   if (saved) selectEngine(saved);
   else { saveAvailable = null; $('continue-button').hidden = true; toast('存档无法读取，可以开始新的远行。'); }
 });
-$('pause-button').addEventListener('click', showPause);
+$('pause-button').addEventListener('click', () => { setMapOpen(false); showPause(); });
+$('map-button').addEventListener('click', () => setMapOpen(!renderer.overview));
+$('map-close').addEventListener('click', () => setMapOpen(false));
+$('rescue-button').addEventListener('click', requestRescue);
+for (const destination of document.querySelectorAll('[data-destination]')) {
+  destination.addEventListener('click', () => {
+    const target = destination.dataset.destination === 'home' ? engine.state.furnace : engine.state.towers.find(tower => tower.id === destination.dataset.destination);
+    travelTo(target);
+  });
+}
 $('help-button').addEventListener('click', showHelp);
 $('upgrade-button').addEventListener('click', showGear);
 $('interact-button').addEventListener('click', interact);
@@ -325,15 +431,24 @@ $('dialog-close').addEventListener('click', () => closeDialog());
 dialog.addEventListener('cancel', event => { event.preventDefault(); closeDialog(); });
 canvas.tabIndex = 0;
 canvas.addEventListener('pointerdown', event => {
-  if (engine.state.mode !== 'playing' || dialog.open || event.button !== 0) return;
-  walkTarget = renderer.screenToWorld(event.clientX, event.clientY);
-  const r = Math.hypot((walkTarget.x - 1100) / 810, (walkTarget.y - 900) / 745);
-  if (r > 1) { walkTarget.x = 1100 + (walkTarget.x - 1100) / r; walkTarget.y = 900 + (walkTarget.y - 900) / r; }
+  if (dialog.open || event.button !== 0) return;
+  if (renderer.overview) {
+    const target = renderer.mapPoint?.(event.clientX, event.clientY);
+    if (target) travelTo(target);
+    return;
+  }
+  if (renderer.minimapHit?.(event.clientX, event.clientY)) { setMapOpen(true); return; }
+  if (engine.state.mode !== 'playing' || engine.state.player.frozen) return;
+  travelTo(renderer.screenToWorld(event.clientX, event.clientY));
   canvas.focus({ preventScroll: true });
 });
 window.addEventListener('keydown', event => {
   if (event.metaKey || event.ctrlKey || event.altKey) return;
   const key = event.key.toLowerCase();
+  if (renderer.overview) {
+    if (['m', 'escape', 'p'].includes(key) && !event.repeat) { event.preventDefault(); setMapOpen(false); }
+    return;
+  }
   const movement = ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'];
   if (dialog.open) {
     if ((key === 'p' || key === 'e') && !event.repeat) { event.preventDefault(); closeDialog(); }
@@ -342,6 +457,8 @@ window.addEventListener('keydown', event => {
   if (engine.state.mode !== 'playing') return;
   if (movement.includes(key)) { event.preventDefault(); keys.add(key); walkTarget = null; }
   else if (!event.repeat) {
+    if (key === 'm') { event.preventDefault(); setMapOpen(true); }
+    if (key === 'r' && engine.state.player.frozen) { event.preventDefault(); requestRescue(); }
     if (key === 'e') { event.preventDefault(); interact(); }
     if (key === 'u' || key === 'b') { event.preventDefault(); showGear(); }
     if (key === 'escape' || key === 'p') { event.preventDefault(); showPause(); }
@@ -394,6 +511,8 @@ function frame(now) {
     ctx.strokeStyle = '#a7532f'; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
   }
   for (const event of engine.drainEvents()) {
+    if (event.type === 'deposit') { depositFeedback(event); continue; }
+    if (event.type === 'freeze' || event.type === 'rescue') clearInput();
     toast(event.text, event.type === 'wave' || event.type === 'danger' ? 5000 : 3600);
     if (event.type === 'win') { playCue(660, 1, .035); showVictory(); }
     else if (event.type === 'wave') tone(147, .6, .045, 'triangle');
@@ -410,6 +529,7 @@ function frame(now) {
       audioClock = 0;
     }
   }
+  if (now > receiptUntil) $('deposit-receipt').hidden = true;
   if (now > toastUntil) $('toast').classList.remove('show');
   if (cueUntil && now >= cueUntil) { cueUntil = 0; syncAudio(); }
   uiClock += dt;
